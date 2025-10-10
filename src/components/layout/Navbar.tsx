@@ -11,13 +11,21 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import logo from "@/assets/war-room-logo.png";
 import { User } from "@supabase/supabase-js";
+import { useEffect, useState } from "react";
 
-interface NavbarProps {
-  user: User | null;
-}
-
-const Navbar = ({ user }: NavbarProps) => {
+const Navbar = () => {
   const navigate = useNavigate();
+  const [user, setUser] = useState<User | null>(null);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => setUser(user));
+    
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -42,6 +50,9 @@ const Navbar = ({ user }: NavbarProps) => {
                 </Link>
                 <Link to="/threads">
                   <Button variant="ghost">Discussions</Button>
+                </Link>
+                <Link to="/messages">
+                  <Button variant="ghost">Messages</Button>
                 </Link>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>

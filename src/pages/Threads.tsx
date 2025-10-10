@@ -88,7 +88,7 @@ const Threads = () => {
 
   return (
     <div className="min-h-screen wood-grain">
-      <Navbar user={user} />
+      <Navbar />
       <main className="container mx-auto px-4 py-8">
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-4xl font-bold">Strategic Discussions</h1>
@@ -142,7 +142,11 @@ const Threads = () => {
 
         <div className="grid gap-4">
           {threads.map((thread) => (
-            <Card key={thread.id} className="elegant-shadow hover:shadow-lg transition-smooth cursor-pointer">
+            <Card 
+              key={thread.id} 
+              className="elegant-shadow hover:shadow-lg transition-smooth cursor-pointer"
+              onClick={() => window.location.href = `/threads/${thread.id}`}
+            >
               <CardHeader>
                 <div className="flex items-start justify-between">
                   <div className="flex-1">

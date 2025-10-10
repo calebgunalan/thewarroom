@@ -8,6 +8,8 @@ import NotFound from "./pages/NotFound";
 import AuthPage from "./components/auth/AuthPage";
 import Dashboard from "./pages/Dashboard";
 import Threads from "./pages/Threads";
+import ThreadDetail from "./pages/ThreadDetail";
+import Messages from "./pages/Messages";
 
 const queryClient = new QueryClient();
 
@@ -22,6 +24,8 @@ const App = () => (
           <Route path="/auth" element={<AuthPage />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/threads" element={<Threads />} />
+          <Route path="/threads/:threadId" element={<ThreadDetail />} />
+          <Route path="/messages" element={<Messages />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

@@ -44,6 +44,51 @@ export type Database = {
         }
         Relationships: []
       }
+      messages: {
+        Row: {
+          content: string
+          created_at: string | null
+          id: string
+          read: boolean | null
+          recipient_id: string
+          sender_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          content: string
+          created_at?: string | null
+          id?: string
+          read?: boolean | null
+          recipient_id: string
+          sender_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          content?: string
+          created_at?: string | null
+          id?: string
+          read?: boolean | null
+          recipient_id?: string
+          sender_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_recipient_id_fkey"
+            columns: ["recipient_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_sender_id_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       posts: {
         Row: {
           author_id: string
@@ -245,8 +290,10 @@ export type Database = {
           created_at: string | null
           id: string
           is_pinned: boolean | null
+          last_activity: string | null
           title: string
           updated_at: string | null
+          view_count: number | null
         }
         Insert: {
           author_id: string
@@ -254,8 +301,10 @@ export type Database = {
           created_at?: string | null
           id?: string
           is_pinned?: boolean | null
+          last_activity?: string | null
           title: string
           updated_at?: string | null
+          view_count?: number | null
         }
         Update: {
           author_id?: string
@@ -263,8 +312,10 @@ export type Database = {
           created_at?: string | null
           id?: string
           is_pinned?: boolean | null
+          last_activity?: string | null
           title?: string
           updated_at?: string | null
+          view_count?: number | null
         }
         Relationships: [
           {

@@ -67,7 +67,7 @@ const Index = () => {
 
   return (
     <div className="min-h-screen wood-grain">
-      <Navbar user={user} />
+      <Navbar />
       
       {/* Hero Section */}
       <section className="relative overflow-hidden">
