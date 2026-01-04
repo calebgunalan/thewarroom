@@ -51,6 +51,12 @@ const Navbar = () => {
                 <Link to="/threads">
                   <Button variant="ghost">Discussions</Button>
                 </Link>
+                <Link to="/tasks">
+                  <Button variant="ghost">Tasks</Button>
+                </Link>
+                <Link to="/members">
+                  <Button variant="ghost">Members</Button>
+                </Link>
                 <Link to="/messages">
                   <Button variant="ghost">Messages</Button>
                 </Link>
@@ -65,10 +71,10 @@ const Navbar = () => {
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-56">
                     <DropdownMenuItem onClick={() => navigate("/profile")}>
-                      Profile
+                      My Profile
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => navigate("/tasks")}>
-                      My Tasks
+                    <DropdownMenuItem onClick={() => navigate("/forum-info")}>
+                      Forum Rules & Info
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={handleLogout} className="text-destructive">
                       Logout
