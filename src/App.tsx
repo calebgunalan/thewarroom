@@ -10,6 +10,10 @@ import Dashboard from "./pages/Dashboard";
 import Threads from "./pages/Threads";
 import ThreadDetail from "./pages/ThreadDetail";
 import Messages from "./pages/Messages";
+import Tasks from "./pages/Tasks";
+import Members from "./pages/Members";
+import Profile from "./pages/Profile";
+import ForumConfig from "./pages/ForumConfig";
 
 const queryClient = new QueryClient();
 
@@ -26,6 +30,10 @@ const App = () => (
           <Route path="/threads" element={<Threads />} />
           <Route path="/threads/:threadId" element={<ThreadDetail />} />
           <Route path="/messages" element={<Messages />} />
+          <Route path="/tasks" element={<Tasks />} />
+          <Route path="/members" element={<Members />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/forum-info" element={<ForumConfig />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
