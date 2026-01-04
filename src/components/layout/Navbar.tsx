@@ -12,6 +12,8 @@ import { toast } from "sonner";
 import logo from "@/assets/war-room-logo.png";
 import { User } from "@supabase/supabase-js";
 import { useEffect, useState } from "react";
+import NotificationBell from "./NotificationBell";
+import { Search } from "lucide-react";
 
 const Navbar = () => {
   const navigate = useNavigate();
@@ -51,15 +53,18 @@ const Navbar = () => {
                 <Link to="/threads">
                   <Button variant="ghost">Discussions</Button>
                 </Link>
+                <Link to="/chat-rooms">
+                  <Button variant="ghost">Chat</Button>
+                </Link>
                 <Link to="/tasks">
                   <Button variant="ghost">Tasks</Button>
                 </Link>
-                <Link to="/members">
-                  <Button variant="ghost">Members</Button>
+                <Link to="/search">
+                  <Button variant="ghost" size="icon">
+                    <Search className="h-4 w-4" />
+                  </Button>
                 </Link>
-                <Link to="/messages">
-                  <Button variant="ghost">Messages</Button>
-                </Link>
+                <NotificationBell />
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Avatar className="cursor-pointer ring-2 ring-accent/20 hover:ring-accent/40 transition-smooth">
@@ -72,6 +77,15 @@ const Navbar = () => {
                   <DropdownMenuContent align="end" className="w-56">
                     <DropdownMenuItem onClick={() => navigate("/profile")}>
                       My Profile
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => navigate("/messages")}>
+                      Direct Messages
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => navigate("/members")}>
+                      Members
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => navigate("/notifications")}>
+                      All Notifications
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => navigate("/forum-info")}>
                       Forum Rules & Info

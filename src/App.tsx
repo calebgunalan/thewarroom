@@ -14,6 +14,9 @@ import Tasks from "./pages/Tasks";
 import Members from "./pages/Members";
 import Profile from "./pages/Profile";
 import ForumConfig from "./pages/ForumConfig";
+import Notifications from "./pages/Notifications";
+import ChatRooms from "./pages/ChatRooms";
+import Search from "./pages/Search";
 
 const queryClient = new QueryClient();
 
@@ -34,6 +37,9 @@ const App = () => (
           <Route path="/members" element={<Members />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/forum-info" element={<ForumConfig />} />
+          <Route path="/notifications" element={<Notifications />} />
+          <Route path="/chat-rooms" element={<ChatRooms />} />
+          <Route path="/search" element={<Search />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

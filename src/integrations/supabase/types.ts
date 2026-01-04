@@ -14,6 +14,71 @@ export type Database = {
   }
   public: {
     Tables: {
+      chat_room_messages: {
+        Row: {
+          audio_url: string | null
+          content: string
+          created_at: string | null
+          id: string
+          image_url: string | null
+          room_id: string
+          sender_id: string
+        }
+        Insert: {
+          audio_url?: string | null
+          content: string
+          created_at?: string | null
+          id?: string
+          image_url?: string | null
+          room_id: string
+          sender_id: string
+        }
+        Update: {
+          audio_url?: string | null
+          content?: string
+          created_at?: string | null
+          id?: string
+          image_url?: string | null
+          room_id?: string
+          sender_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_room_messages_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "chat_rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chat_rooms: {
+        Row: {
+          created_at: string | null
+          created_by: string
+          description: string | null
+          id: string
+          is_private: boolean | null
+          name: string
+        }
+        Insert: {
+          created_at?: string | null
+          created_by: string
+          description?: string | null
+          id?: string
+          is_private?: boolean | null
+          name: string
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string
+          description?: string | null
+          id?: string
+          is_private?: boolean | null
+          name?: string
+        }
+        Relationships: []
+      }
       forum_config: {
         Row: {
           common_goal: string | null
@@ -46,27 +111,33 @@ export type Database = {
       }
       messages: {
         Row: {
+          audio_url: string | null
           content: string
           created_at: string | null
           id: string
+          image_url: string | null
           read: boolean | null
           recipient_id: string
           sender_id: string
           updated_at: string | null
         }
         Insert: {
+          audio_url?: string | null
           content: string
           created_at?: string | null
           id?: string
+          image_url?: string | null
           read?: boolean | null
           recipient_id: string
           sender_id: string
           updated_at?: string | null
         }
         Update: {
+          audio_url?: string | null
           content?: string
           created_at?: string | null
           id?: string
+          image_url?: string | null
           read?: boolean | null
           recipient_id?: string
           sender_id?: string
@@ -88,6 +159,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      notifications: {
+        Row: {
+          created_at: string | null
+          id: string
+          link: string | null
+          message: string
+          read: boolean | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          link?: string | null
+          message: string
+          read?: boolean | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          link?: string | null
+          message?: string
+          read?: boolean | null
+          title?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       posts: {
         Row: {
@@ -397,6 +501,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_notification: {
+        Args: {
+          _link?: string
+          _message: string
+          _title: string
+          _type: string
+          _user_id: string
+        }
+        Returns: string
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
