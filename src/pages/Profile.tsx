@@ -1,24 +1,27 @@
 import { useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import Navbar from "@/components/layout/Navbar";
+import AvatarUpload from "@/components/profile/AvatarUpload";
 import { toast } from "sonner";
-import { Edit, TrendingUp, Target, CheckCircle, MessageSquare, AlertTriangle, Plus } from "lucide-react";
+import { Edit, TrendingUp, Target, CheckCircle, MessageSquare, AlertTriangle, Plus, Mail } from "lucide-react";
 import { format } from "date-fns";
+import { useNavigate } from "react-router-dom";
 
 interface Profile {
   id: string;
   username: string;
   avatar_url: string | null;
   bio: string | null;
+  status?: string;
 }
 
 interface ProgressUpdate {
@@ -29,7 +32,10 @@ interface ProgressUpdate {
 }
 
 const ProfilePage = () => {
+  const { userId } = useParams<{ userId: string }>();
+  const navigate = useNavigate();
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [role, setRole] = useState<string>("member");
   const [stats, setStats] = useState({
     tasksCompleted: 0,
@@ -47,41 +53,48 @@ const ProfilePage = () => {
   const [newProgress, setNewProgress] = useState({ title: "", description: "" });
   const [loading, setLoading] = useState(true);
 
+  const isOwnProfile = !userId || userId === currentUserId;
+
   useEffect(() => {
     fetchProfileData();
-  }, []);
+  }, [userId]);
 
   const fetchProfileData = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
+    
+    setCurrentUserId(user.id);
+    const targetUserId = userId || user.id;
 
     // Fetch profile
     const { data: profileData } = await supabase
       .from("profiles")
       .select("*")
-      .eq("id", user.id)
+      .eq("id", targetUserId)
       .single();
 
     if (profileData) {
       setProfile(profileData);
-      setEditForm({ username: profileData.username, bio: profileData.bio || "" });
+      if (isOwnProfile) {
+        setEditForm({ username: profileData.username, bio: profileData.bio || "" });
+      }
     }
 
     // Fetch role
     const { data: roleData } = await supabase
       .from("user_roles")
       .select("role")
-      .eq("user_id", user.id)
+      .eq("user_id", targetUserId)
       .single();
     
     if (roleData) setRole(roleData.role);
 
     // Fetch stats
     const [tasksRes, strikesRes, threadsRes, postsRes] = await Promise.all([
-      supabase.from("tasks").select("status").eq("assigned_to", user.id),
-      supabase.from("strikes").select("id").eq("user_id", user.id),
-      supabase.from("threads").select("id").eq("author_id", user.id),
-      supabase.from("posts").select("id").eq("author_id", user.id),
+      supabase.from("tasks").select("status").eq("assigned_to", targetUserId),
+      supabase.from("strikes").select("id").eq("user_id", targetUserId),
+      supabase.from("threads").select("id").eq("author_id", targetUserId),
+      supabase.from("posts").select("id").eq("author_id", targetUserId),
     ]);
 
     // Get upvotes received
@@ -122,7 +135,7 @@ const ProfilePage = () => {
     const { data: progressData } = await supabase
       .from("progress_updates")
       .select("*")
-      .eq("user_id", user.id)
+      .eq("user_id", targetUserId)
       .order("created_at", { ascending: false });
 
     setProgressUpdates(progressData || []);
@@ -177,6 +190,18 @@ const ProfilePage = () => {
     }
   };
 
+  const handleAvatarUpdate = (url: string) => {
+    if (profile) {
+      setProfile({ ...profile, avatar_url: url });
+    }
+  };
+
+  const handleSendMessage = () => {
+    if (profile) {
+      navigate(`/messages?user=${profile.id}`);
+    }
+  };
+
   const getRoleBadgeVariant = (role: string) => {
     switch (role) {
       case "admin": return "destructive";
@@ -209,16 +234,23 @@ const ProfilePage = () => {
           <Card className="elegant-shadow mb-8">
             <CardContent className="p-8">
               <div className="flex flex-col md:flex-row items-center gap-6">
-                <Avatar className="h-32 w-32 ring-4 ring-accent/30">
-                  <AvatarImage src={profile.avatar_url || undefined} />
-                  <AvatarFallback className="text-4xl">{profile.username[0].toUpperCase()}</AvatarFallback>
-                </Avatar>
+                <AvatarUpload
+                  userId={profile.id}
+                  username={profile.username}
+                  currentAvatarUrl={profile.avatar_url}
+                  onAvatarUpdate={handleAvatarUpdate}
+                  editable={isOwnProfile}
+                  size="lg"
+                />
                 <div className="flex-1 text-center md:text-left">
                   <div className="flex items-center justify-center md:justify-start gap-3 mb-2">
                     <h1 className="text-3xl font-bold">{profile.username}</h1>
                     <Badge variant={getRoleBadgeVariant(role)} className="capitalize">
                       {role}
                     </Badge>
+                    {profile.status === "removed" && (
+                      <Badge variant="destructive">Removed</Badge>
+                    )}
                   </div>
                   <p className="text-muted-foreground mb-4">
                     {profile.bio || "No bio set"}
@@ -237,42 +269,51 @@ const ProfilePage = () => {
                     )}
                   </div>
                 </div>
-                <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-                  <DialogTrigger asChild>
-                    <Button variant="outline">
-                      <Edit className="mr-2 h-4 w-4" />
-                      Edit Profile
+                <div className="flex flex-col gap-2">
+                  {isOwnProfile ? (
+                    <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+                      <DialogTrigger asChild>
+                        <Button variant="outline">
+                          <Edit className="mr-2 h-4 w-4" />
+                          Edit Profile
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Edit Profile</DialogTitle>
+                        </DialogHeader>
+                        <div className="space-y-4">
+                          <div>
+                            <Label htmlFor="username">Username</Label>
+                            <Input
+                              id="username"
+                              value={editForm.username}
+                              onChange={(e) => setEditForm({ ...editForm, username: e.target.value })}
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="bio">Bio</Label>
+                            <Textarea
+                              id="bio"
+                              value={editForm.bio}
+                              onChange={(e) => setEditForm({ ...editForm, bio: e.target.value })}
+                              placeholder="Tell us about yourself..."
+                              rows={3}
+                            />
+                          </div>
+                          <Button onClick={updateProfile} className="w-full">
+                            Save Changes
+                          </Button>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+                  ) : (
+                    <Button onClick={handleSendMessage}>
+                      <Mail className="mr-2 h-4 w-4" />
+                      Send Message
                     </Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Edit Profile</DialogTitle>
-                    </DialogHeader>
-                    <div className="space-y-4">
-                      <div>
-                        <Label htmlFor="username">Username</Label>
-                        <Input
-                          id="username"
-                          value={editForm.username}
-                          onChange={(e) => setEditForm({ ...editForm, username: e.target.value })}
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="bio">Bio</Label>
-                        <Textarea
-                          id="bio"
-                          value={editForm.bio}
-                          onChange={(e) => setEditForm({ ...editForm, bio: e.target.value })}
-                          placeholder="Tell us about yourself..."
-                          rows={3}
-                        />
-                      </div>
-                      <Button onClick={updateProfile} className="w-full">
-                        Save Changes
-                      </Button>
-                    </div>
-                  </DialogContent>
-                </Dialog>
+                  )}
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -328,44 +369,46 @@ const ProfilePage = () => {
           {/* Progress Updates */}
           <Card className="elegant-shadow">
             <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>Progress Updates</CardTitle>
-              <Dialog open={isProgressDialogOpen} onOpenChange={setIsProgressDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button size="sm">
-                    <Plus className="mr-2 h-4 w-4" />
-                    Add Update
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Add Progress Update</DialogTitle>
-                  </DialogHeader>
-                  <div className="space-y-4">
-                    <div>
-                      <Label htmlFor="progressTitle">Title</Label>
-                      <Input
-                        id="progressTitle"
-                        value={newProgress.title}
-                        onChange={(e) => setNewProgress({ ...newProgress, title: e.target.value })}
-                        placeholder="What did you accomplish?"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="progressDesc">Description (optional)</Label>
-                      <Textarea
-                        id="progressDesc"
-                        value={newProgress.description}
-                        onChange={(e) => setNewProgress({ ...newProgress, description: e.target.value })}
-                        placeholder="More details..."
-                        rows={3}
-                      />
-                    </div>
-                    <Button onClick={addProgressUpdate} className="w-full">
+              <CardTitle>{isOwnProfile ? "My Progress Updates" : `${profile.username}'s Progress`}</CardTitle>
+              {isOwnProfile && (
+                <Dialog open={isProgressDialogOpen} onOpenChange={setIsProgressDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button size="sm">
+                      <Plus className="mr-2 h-4 w-4" />
                       Add Update
                     </Button>
-                  </div>
-                </DialogContent>
-              </Dialog>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Add Progress Update</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      <div>
+                        <Label htmlFor="progressTitle">Title</Label>
+                        <Input
+                          id="progressTitle"
+                          value={newProgress.title}
+                          onChange={(e) => setNewProgress({ ...newProgress, title: e.target.value })}
+                          placeholder="What did you accomplish?"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="progressDesc">Description (optional)</Label>
+                        <Textarea
+                          id="progressDesc"
+                          value={newProgress.description}
+                          onChange={(e) => setNewProgress({ ...newProgress, description: e.target.value })}
+                          placeholder="More details..."
+                          rows={3}
+                        />
+                      </div>
+                      <Button onClick={addProgressUpdate} className="w-full">
+                        Add Update
+                      </Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              )}
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
@@ -384,7 +427,7 @@ const ProfilePage = () => {
                 ))}
                 {progressUpdates.length === 0 && (
                   <p className="text-center text-muted-foreground py-8">
-                    No progress updates yet. Share your achievements!
+                    {isOwnProfile ? "No progress updates yet. Share your achievements!" : "No progress updates yet."}
                   </p>
                 )}
               </div>

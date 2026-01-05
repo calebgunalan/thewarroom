@@ -36,6 +36,7 @@ const App = () => (
           <Route path="/tasks" element={<Tasks />} />
           <Route path="/members" element={<Members />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/profile/:userId" element={<Profile />} />
           <Route path="/forum-info" element={<ForumConfig />} />
           <Route path="/notifications" element={<Notifications />} />
           <Route path="/chat-rooms" element={<ChatRooms />} />
