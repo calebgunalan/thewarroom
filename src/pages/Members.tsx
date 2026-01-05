@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
@@ -13,6 +14,7 @@ interface MemberStats {
   avatar_url: string | null;
   bio: string | null;
   role: string;
+  status: string;
   tasksCompleted: number;
   totalTasks: number;
   strikes: number;
@@ -23,6 +25,7 @@ interface MemberStats {
 }
 
 const Members = () => {
+  const navigate = useNavigate();
   const [members, setMembers] = useState<MemberStats[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -73,14 +76,9 @@ const Members = () => {
         .eq("author_id", profile.id);
 
       // Get upvotes received
-      const { data: userPosts } = await supabase
-        .from("posts")
-        .select("id")
-        .eq("author_id", profile.id);
-
       let upvotesReceived = 0;
-      if (userPosts) {
-        for (const post of userPosts) {
+      if (posts) {
+        for (const post of posts) {
           const { count } = await supabase
             .from("votes")
             .select("*", { count: "exact", head: true })
@@ -107,6 +105,7 @@ const Members = () => {
         avatar_url: profile.avatar_url,
         bio: profile.bio,
         role: roleData?.role || "member",
+        status: (profile as any).status || "active",
         tasksCompleted,
         totalTasks,
         strikes: strikes?.length || 0,
@@ -136,6 +135,10 @@ const Members = () => {
     if (index === 1) return { icon: "🥈", label: "Elite" };
     if (index === 2) return { icon: "🥉", label: "Veteran" };
     return null;
+  };
+
+  const handleMemberClick = (memberId: string) => {
+    navigate(`/profile/${memberId}`);
   };
 
   if (loading) {
@@ -169,7 +172,8 @@ const Members = () => {
               return (
                 <Card 
                   key={member.id} 
-                  className={`elegant-shadow ${index === 0 ? 'border-yellow-500/50 bg-gradient-to-br from-yellow-500/10 to-transparent' : ''}`}
+                  className={`elegant-shadow cursor-pointer hover:scale-105 transition-smooth ${index === 0 ? 'border-yellow-500/50 bg-gradient-to-br from-yellow-500/10 to-transparent' : ''}`}
+                  onClick={() => handleMemberClick(member.id)}
                 >
                   <CardContent className="pt-6 text-center">
                     <div className="text-4xl mb-4">{rank?.icon}</div>
@@ -178,9 +182,14 @@ const Members = () => {
                       <AvatarFallback className="text-2xl">{member.username[0].toUpperCase()}</AvatarFallback>
                     </Avatar>
                     <h3 className="text-xl font-bold mb-2">{member.username}</h3>
-                    <Badge variant={getRoleBadgeVariant(member.role)} className="mb-3">
-                      {member.role}
-                    </Badge>
+                    <div className="flex items-center justify-center gap-2 mb-3">
+                      <Badge variant={getRoleBadgeVariant(member.role)}>
+                        {member.role}
+                      </Badge>
+                      {member.status === "removed" && (
+                        <Badge variant="destructive">Removed</Badge>
+                      )}
+                    </div>
                     <div className="flex items-center justify-center gap-2 text-accent">
                       <TrendingUp className="h-5 w-5" />
                       <span className="text-2xl font-bold">{member.reputationScore}</span>
@@ -201,7 +210,11 @@ const Members = () => {
               : 0;
 
             return (
-              <Card key={member.id} className="elegant-shadow hover:shadow-lg transition-smooth">
+              <Card 
+                key={member.id} 
+                className="elegant-shadow hover:shadow-lg transition-smooth cursor-pointer"
+                onClick={() => handleMemberClick(member.id)}
+              >
                 <CardContent className="p-6">
                   <div className="flex items-center gap-6">
                     <div className="flex items-center gap-4 shrink-0">
@@ -220,7 +233,10 @@ const Members = () => {
                         <Badge variant={getRoleBadgeVariant(member.role)}>
                           {member.role}
                         </Badge>
-                        {member.strikes > 0 && (
+                        {member.status === "removed" && (
+                          <Badge variant="destructive">Removed</Badge>
+                        )}
+                        {member.strikes > 0 && member.status !== "removed" && (
                           <Badge variant="destructive" className="flex items-center gap-1">
                             <AlertTriangle className="h-3 w-3" />
                             {member.strikes}/3

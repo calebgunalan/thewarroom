@@ -244,6 +244,7 @@ export type Database = {
           bio: string | null
           created_at: string | null
           id: string
+          status: string | null
           updated_at: string | null
           username: string
         }
@@ -252,6 +253,7 @@ export type Database = {
           bio?: string | null
           created_at?: string | null
           id: string
+          status?: string | null
           updated_at?: string | null
           username: string
         }
@@ -260,6 +262,7 @@ export type Database = {
           bio?: string | null
           created_at?: string | null
           id?: string
+          status?: string | null
           updated_at?: string | null
           username?: string
         }
@@ -303,6 +306,7 @@ export type Database = {
           created_by: string | null
           id: string
           reason: string
+          task_id: string | null
           user_id: string
         }
         Insert: {
@@ -310,6 +314,7 @@ export type Database = {
           created_by?: string | null
           id?: string
           reason: string
+          task_id?: string | null
           user_id: string
         }
         Update: {
@@ -317,6 +322,7 @@ export type Database = {
           created_by?: string | null
           id?: string
           reason?: string
+          task_id?: string | null
           user_id?: string
         }
         Relationships: [
@@ -325,6 +331,13 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "strikes_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
             referencedColumns: ["id"]
           },
           {
