@@ -10,6 +10,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "sonner";
 import { ArrowLeft, ArrowUp, ArrowDown, MessageSquare, Upload, X } from "lucide-react";
 import Navbar from "@/components/layout/Navbar";
+import ReportButton from "@/components/content/ReportButton";
 import { format } from "date-fns";
 
 interface Post {
@@ -363,6 +364,9 @@ const ThreadDetail = () => {
                           className="rounded-lg max-w-full h-auto mb-3"
                         />
                       )}
+                      <div className="flex justify-end">
+                        <ReportButton contentType="post" contentId={post.id} />
+                      </div>
                     </div>
                   </div>
                 </CardContent>
