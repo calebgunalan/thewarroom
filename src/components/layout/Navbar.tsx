@@ -5,6 +5,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,14 +14,39 @@ import logo from "@/assets/war-room-logo.png";
 import { User } from "@supabase/supabase-js";
 import { useEffect, useState } from "react";
 import NotificationBell from "./NotificationBell";
-import { Search, Video } from "lucide-react";
+import { Search, Video, Shield } from "lucide-react";
 
 const Navbar = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState<User | null>(null);
+  const [userRole, setUserRole] = useState<string>("member");
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => setUser(user));
+    const init = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUser(user);
+      
+      if (user) {
+        // Fetch user role
+        const { data: roleData } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", user.id)
+          .single();
+        if (roleData) setUserRole(roleData.role);
+
+        // Fetch avatar
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("avatar_url")
+          .eq("id", user.id)
+          .single();
+        if (profile) setAvatarUrl(profile.avatar_url);
+      }
+    };
+    
+    init();
     
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
@@ -28,6 +54,8 @@ const Navbar = () => {
 
     return () => subscription.unsubscribe();
   }, []);
+
+  const isModerator = userRole === "admin" || userRole === "moderator";
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -73,7 +101,7 @@ const Navbar = () => {
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Avatar className="cursor-pointer ring-2 ring-accent/20 hover:ring-accent/40 transition-smooth">
-                      <AvatarImage src="" />
+                      <AvatarImage src={avatarUrl || ""} />
                       <AvatarFallback className="bg-primary text-primary-foreground">
                         {user.email?.[0].toUpperCase()}
                       </AvatarFallback>
@@ -95,6 +123,16 @@ const Navbar = () => {
                     <DropdownMenuItem onClick={() => navigate("/forum-info")}>
                       Forum Rules & Info
                     </DropdownMenuItem>
+                    {isModerator && (
+                      <>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => navigate("/admin")} className="text-accent">
+                          <Shield className="h-4 w-4 mr-2" />
+                          Admin Panel
+                        </DropdownMenuItem>
+                      </>
+                    )}
+                    <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={handleLogout} className="text-destructive">
                       Logout
                     </DropdownMenuItem>
