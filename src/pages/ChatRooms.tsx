@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,11 +8,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Badge } from "@/components/ui/badge";
 import Navbar from "@/components/layout/Navbar";
+import AudioRecorder from "@/components/chat/AudioRecorder";
+import AudioPlayer from "@/components/chat/AudioPlayer";
+import TypingIndicator from "@/components/chat/TypingIndicator";
 import { toast } from "sonner";
-import { Plus, Send, Users, Hash, Image as ImageIcon, Mic } from "lucide-react";
+import { Plus, Send, Users, Hash, Image as ImageIcon, Video } from "lucide-react";
 import { format } from "date-fns";
+import { useNavigate } from "react-router-dom";
 
 interface ChatRoom {
   id: string;
@@ -38,7 +41,9 @@ interface ChatMessage {
 }
 
 const ChatRooms = () => {
+  const navigate = useNavigate();
   const [userId, setUserId] = useState<string | null>(null);
+  const [username, setUsername] = useState<string>("");
   const [rooms, setRooms] = useState<ChatRoom[]>([]);
   const [selectedRoom, setSelectedRoom] = useState<ChatRoom | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -46,12 +51,22 @@ const ChatRooms = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [newRoom, setNewRoom] = useState({ name: "", description: "" });
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const [pendingAudioUrl, setPendingAudioUrl] = useState<string | null>(null);
+  const [typingUsers, setTypingUsers] = useState<string[]>([]);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const presenceChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   useEffect(() => {
     const init = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         setUserId(user.id);
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("username")
+          .eq("id", user.id)
+          .single();
+        if (profile) setUsername(profile.username);
         fetchRooms();
       }
     };
@@ -59,11 +74,12 @@ const ChatRooms = () => {
   }, []);
 
   useEffect(() => {
-    if (!selectedRoom) return;
+    if (!selectedRoom || !userId || !username) return;
 
     fetchMessages(selectedRoom.id);
 
-    const channel = supabase
+    // Messages subscription
+    const messageChannel = supabase
       .channel(`room-${selectedRoom.id}`)
       .on(
         "postgres_changes",
@@ -80,10 +96,57 @@ const ChatRooms = () => {
       )
       .subscribe();
 
+    // Presence channel for typing indicators
+    presenceChannelRef.current = supabase.channel(`typing-${selectedRoom.id}`)
+      .on('presence', { event: 'sync' }, () => {
+        const state = presenceChannelRef.current?.presenceState();
+        if (state) {
+          const typingUsernames = Object.values(state)
+            .flat()
+            .filter((p: any) => p.typing && p.user_id !== userId)
+            .map((p: any) => p.username);
+          setTypingUsers(typingUsernames);
+        }
+      })
+      .subscribe(async (status) => {
+        if (status === 'SUBSCRIBED') {
+          await presenceChannelRef.current?.track({
+            user_id: userId,
+            username: username,
+            typing: false,
+          });
+        }
+      });
+
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(messageChannel);
+      if (presenceChannelRef.current) {
+        supabase.removeChannel(presenceChannelRef.current);
+      }
     };
-  }, [selectedRoom]);
+  }, [selectedRoom, userId, username]);
+
+  const handleTyping = useCallback(() => {
+    if (!presenceChannelRef.current || !userId) return;
+
+    presenceChannelRef.current.track({
+      user_id: userId,
+      username: username,
+      typing: true,
+    });
+
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+
+    typingTimeoutRef.current = setTimeout(() => {
+      presenceChannelRef.current?.track({
+        user_id: userId,
+        username: username,
+        typing: false,
+      });
+    }, 2000);
+  }, [userId, username]);
 
   const fetchRooms = async () => {
     const { data } = await supabase
@@ -106,7 +169,6 @@ const ChatRooms = () => {
       return;
     }
 
-    // Fetch sender profiles separately
     const senderIds = [...new Set(messagesData.map(m => m.sender_id))];
     const { data: profiles } = await supabase
       .from("profiles")
@@ -149,7 +211,7 @@ const ChatRooms = () => {
   };
 
   const sendMessage = async () => {
-    if (!newMessage.trim() || !selectedRoom || !userId) return;
+    if ((!newMessage.trim() && !pendingAudioUrl && !imageFile) || !selectedRoom || !userId) return;
 
     let imageUrl = null;
 
@@ -176,14 +238,25 @@ const ChatRooms = () => {
       const { error } = await supabase.from("chat_room_messages").insert({
         room_id: selectedRoom.id,
         sender_id: userId,
-        content: newMessage.trim(),
+        content: newMessage.trim() || (pendingAudioUrl ? "🎤 Voice note" : "📷 Image"),
         image_url: imageUrl,
+        audio_url: pendingAudioUrl,
       });
 
       if (error) throw error;
 
       setNewMessage("");
       setImageFile(null);
+      setPendingAudioUrl(null);
+      
+      // Stop typing indicator
+      if (presenceChannelRef.current) {
+        presenceChannelRef.current.track({
+          user_id: userId,
+          username: username,
+          typing: false,
+        });
+      }
     } catch (error: any) {
       toast.error("Failed to send message");
     }
@@ -198,41 +271,47 @@ const ChatRooms = () => {
             <h1 className="text-4xl font-bold">Chat Rooms</h1>
             <p className="text-muted-foreground mt-2">Real-time group discussions</p>
           </div>
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button className="accent-glow">
-                <Plus className="mr-2 h-4 w-4" />
-                New Room
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Create Chat Room</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="name">Room Name *</Label>
-                  <Input
-                    id="name"
-                    value={newRoom.name}
-                    onChange={(e) => setNewRoom({ ...newRoom, name: e.target.value })}
-                    placeholder="e.g., General, Brainstorming"
-                  />
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => navigate("/meeting")}>
+              <Video className="mr-2 h-4 w-4" />
+              Video Meeting
+            </Button>
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+              <DialogTrigger asChild>
+                <Button className="accent-glow">
+                  <Plus className="mr-2 h-4 w-4" />
+                  New Room
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Create Chat Room</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="name">Room Name *</Label>
+                    <Input
+                      id="name"
+                      value={newRoom.name}
+                      onChange={(e) => setNewRoom({ ...newRoom, name: e.target.value })}
+                      placeholder="e.g., General, Brainstorming"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="description">Description</Label>
+                    <Textarea
+                      id="description"
+                      value={newRoom.description}
+                      onChange={(e) => setNewRoom({ ...newRoom, description: e.target.value })}
+                      placeholder="What's this room about?"
+                      rows={3}
+                    />
+                  </div>
+                  <Button onClick={createRoom} className="w-full">Create Room</Button>
                 </div>
-                <div>
-                  <Label htmlFor="description">Description</Label>
-                  <Textarea
-                    id="description"
-                    value={newRoom.description}
-                    onChange={(e) => setNewRoom({ ...newRoom, description: e.target.value })}
-                    placeholder="What's this room about?"
-                    rows={3}
-                  />
-                </div>
-                <Button onClick={createRoom} className="w-full">Create Room</Button>
-              </div>
-            </DialogContent>
-          </Dialog>
+              </DialogContent>
+            </Dialog>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 h-[calc(100vh-14rem)]">
@@ -316,7 +395,11 @@ const ChatRooms = () => {
                                   isOwn ? "bg-primary text-primary-foreground" : "bg-muted"
                                 }`}
                               >
-                                <p>{msg.content}</p>
+                                {msg.audio_url ? (
+                                  <AudioPlayer src={msg.audio_url} />
+                                ) : (
+                                  <p>{msg.content}</p>
+                                )}
                                 {msg.image_url && (
                                   <img 
                                     src={msg.image_url} 
@@ -331,12 +414,25 @@ const ChatRooms = () => {
                       })}
                     </div>
                   </ScrollArea>
+                  
+                  <TypingIndicator typingUsers={typingUsers} />
+                  
                   <div className="p-4 border-t border-border/50">
-                    {imageFile && (
+                    {(imageFile || pendingAudioUrl) && (
                       <div className="mb-2 p-2 bg-muted rounded flex items-center gap-2">
-                        <ImageIcon className="h-4 w-4" />
-                        <span className="text-sm truncate">{imageFile.name}</span>
-                        <Button size="sm" variant="ghost" onClick={() => setImageFile(null)}>×</Button>
+                        {imageFile && (
+                          <>
+                            <ImageIcon className="h-4 w-4" />
+                            <span className="text-sm truncate">{imageFile.name}</span>
+                            <Button size="sm" variant="ghost" onClick={() => setImageFile(null)}>×</Button>
+                          </>
+                        )}
+                        {pendingAudioUrl && (
+                          <>
+                            <AudioPlayer src={pendingAudioUrl} className="flex-1" />
+                            <Button size="sm" variant="ghost" onClick={() => setPendingAudioUrl(null)}>×</Button>
+                          </>
+                        )}
                       </div>
                     )}
                     <div className="flex gap-2">
@@ -352,9 +448,18 @@ const ChatRooms = () => {
                           <span><ImageIcon className="h-4 w-4" /></span>
                         </Button>
                       </label>
+                      {userId && (
+                        <AudioRecorder 
+                          userId={userId} 
+                          onAudioReady={(url) => setPendingAudioUrl(url)} 
+                        />
+                      )}
                       <Input
                         value={newMessage}
-                        onChange={(e) => setNewMessage(e.target.value)}
+                        onChange={(e) => {
+                          setNewMessage(e.target.value);
+                          handleTyping();
+                        }}
                         placeholder="Type a message..."
                         onKeyPress={(e) => e.key === "Enter" && sendMessage()}
                         className="flex-1"
