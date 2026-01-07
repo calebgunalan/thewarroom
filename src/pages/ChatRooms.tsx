@@ -12,8 +12,9 @@ import Navbar from "@/components/layout/Navbar";
 import AudioRecorder from "@/components/chat/AudioRecorder";
 import AudioPlayer from "@/components/chat/AudioPlayer";
 import TypingIndicator from "@/components/chat/TypingIndicator";
+import { LocationSharing, LocationMessage } from "@/components/chat/LocationSharing";
 import { toast } from "sonner";
-import { Plus, Send, Users, Hash, Image as ImageIcon, Video } from "lucide-react";
+import { Plus, Send, Users, Hash, Image as ImageIcon, Video, MapPin } from "lucide-react";
 import { format } from "date-fns";
 import { useNavigate } from "react-router-dom";
 
@@ -52,6 +53,7 @@ const ChatRooms = () => {
   const [newRoom, setNewRoom] = useState({ name: "", description: "" });
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [pendingAudioUrl, setPendingAudioUrl] = useState<string | null>(null);
+  const [pendingLocation, setPendingLocation] = useState<{ lat: number; lng: number; address?: string } | null>(null);
   const [typingUsers, setTypingUsers] = useState<string[]>([]);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const presenceChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
@@ -211,9 +213,10 @@ const ChatRooms = () => {
   };
 
   const sendMessage = async () => {
-    if ((!newMessage.trim() && !pendingAudioUrl && !imageFile) || !selectedRoom || !userId) return;
+    if ((!newMessage.trim() && !pendingAudioUrl && !imageFile && !pendingLocation) || !selectedRoom || !userId) return;
 
     let imageUrl = null;
+    let messageContent = newMessage.trim();
 
     if (imageFile) {
       const fileExt = imageFile.name.split('.').pop();
@@ -234,11 +237,16 @@ const ChatRooms = () => {
       imageUrl = publicUrl;
     }
 
+    // Format location as a special message
+    if (pendingLocation) {
+      messageContent = `📍 Location: ${pendingLocation.lat.toFixed(6)},${pendingLocation.lng.toFixed(6)}${pendingLocation.address ? ` - ${pendingLocation.address}` : ""}`;
+    }
+
     try {
       const { error } = await supabase.from("chat_room_messages").insert({
         room_id: selectedRoom.id,
         sender_id: userId,
-        content: newMessage.trim() || (pendingAudioUrl ? "🎤 Voice note" : "📷 Image"),
+        content: messageContent || (pendingAudioUrl ? "🎤 Voice note" : "📷 Image"),
         image_url: imageUrl,
         audio_url: pendingAudioUrl,
       });
@@ -248,6 +256,7 @@ const ChatRooms = () => {
       setNewMessage("");
       setImageFile(null);
       setPendingAudioUrl(null);
+      setPendingLocation(null);
       
       // Stop typing indicator
       if (presenceChannelRef.current) {
@@ -260,6 +269,18 @@ const ChatRooms = () => {
     } catch (error: any) {
       toast.error("Failed to send message");
     }
+  };
+
+  const parseLocationFromMessage = (content: string): { lat: number; lng: number; address?: string } | null => {
+    const match = content.match(/📍 Location: ([-\d.]+),([-\d.]+)(?: - (.+))?$/);
+    if (match) {
+      return {
+        lat: parseFloat(match[1]),
+        lng: parseFloat(match[2]),
+        address: match[3],
+      };
+    }
+    return null;
   };
 
   return (
@@ -375,6 +396,7 @@ const ChatRooms = () => {
                     <div className="space-y-4">
                       {messages.map(msg => {
                         const isOwn = msg.sender_id === userId;
+                        const locationData = parseLocationFromMessage(msg.content);
                         return (
                           <div key={msg.id} className={`flex gap-3 ${isOwn ? "flex-row-reverse" : ""}`}>
                             <Avatar className="h-8 w-8 shrink-0">
@@ -397,6 +419,8 @@ const ChatRooms = () => {
                               >
                                 {msg.audio_url ? (
                                   <AudioPlayer src={msg.audio_url} />
+                                ) : locationData ? (
+                                  <LocationMessage {...locationData} />
                                 ) : (
                                   <p>{msg.content}</p>
                                 )}
@@ -418,7 +442,7 @@ const ChatRooms = () => {
                   <TypingIndicator typingUsers={typingUsers} />
                   
                   <div className="p-4 border-t border-border/50">
-                    {(imageFile || pendingAudioUrl) && (
+                    {(imageFile || pendingAudioUrl || pendingLocation) && (
                       <div className="mb-2 p-2 bg-muted rounded flex items-center gap-2">
                         {imageFile && (
                           <>
@@ -431,6 +455,15 @@ const ChatRooms = () => {
                           <>
                             <AudioPlayer src={pendingAudioUrl} className="flex-1" />
                             <Button size="sm" variant="ghost" onClick={() => setPendingAudioUrl(null)}>×</Button>
+                          </>
+                        )}
+                        {pendingLocation && (
+                          <>
+                            <MapPin className="h-4 w-4 text-accent" />
+                            <span className="text-sm truncate">
+                              {pendingLocation.address || `${pendingLocation.lat.toFixed(4)}, ${pendingLocation.lng.toFixed(4)}`}
+                            </span>
+                            <Button size="sm" variant="ghost" onClick={() => setPendingLocation(null)}>×</Button>
                           </>
                         )}
                       </div>
@@ -454,6 +487,10 @@ const ChatRooms = () => {
                           onAudioReady={(url) => setPendingAudioUrl(url)} 
                         />
                       )}
+                      <LocationSharing 
+                        onLocationShare={(loc) => setPendingLocation(loc)}
+                        disabled={!selectedRoom}
+                      />
                       <Input
                         value={newMessage}
                         onChange={(e) => {
