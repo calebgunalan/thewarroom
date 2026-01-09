@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import Navbar from "@/components/layout/Navbar";
+import MobileNavigation from "@/components/layout/MobileNavigation";
 import { User } from "@supabase/supabase-js";
 import { MessageSquare, Plus } from "lucide-react";
 import { toast } from "sonner";
@@ -87,7 +88,7 @@ const Threads = () => {
   };
 
   return (
-    <div className="min-h-screen wood-grain">
+    <div className="min-h-screen wood-grain pb-20 md:pb-0">
       <Navbar />
       <main className="container mx-auto px-4 py-8">
         <div className="flex justify-between items-center mb-8">
@@ -176,6 +177,7 @@ const Threads = () => {
           )}
         </div>
       </main>
+      <MobileNavigation />
     </div>
   );
 };

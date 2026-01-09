@@ -19,6 +19,7 @@ import ChatRooms from "./pages/ChatRooms";
 import Search from "./pages/Search";
 import VideoMeeting from "./pages/VideoMeeting";
 import Admin from "./pages/Admin";
+import Calendar from "./pages/Calendar";
 
 const queryClient = new QueryClient();
 
@@ -46,6 +47,7 @@ const App = () => (
           <Route path="/meeting" element={<VideoMeeting />} />
           <Route path="/meeting/:roomId" element={<VideoMeeting />} />
           <Route path="/admin" element={<Admin />} />
+          <Route path="/calendar" element={<Calendar />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

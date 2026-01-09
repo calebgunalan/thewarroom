@@ -14,7 +14,7 @@ import logo from "@/assets/war-room-logo.png";
 import { User } from "@supabase/supabase-js";
 import { useEffect, useState } from "react";
 import NotificationBell from "./NotificationBell";
-import { Search, Video, Shield } from "lucide-react";
+import { Search, Video, Shield, Calendar } from "lucide-react";
 
 const Navbar = () => {
   const navigate = useNavigate();
@@ -86,6 +86,11 @@ const Navbar = () => {
                 </Link>
                 <Link to="/tasks">
                   <Button variant="ghost">Tasks</Button>
+                </Link>
+                <Link to="/calendar">
+                  <Button variant="ghost" size="icon" title="Calendar">
+                    <Calendar className="h-4 w-4" />
+                  </Button>
                 </Link>
                 <Link to="/meeting">
                   <Button variant="ghost" size="icon" title="Video Meetings">

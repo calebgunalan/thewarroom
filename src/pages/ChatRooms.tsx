@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import Navbar from "@/components/layout/Navbar";
+import MobileNavigation from "@/components/layout/MobileNavigation";
 import AudioRecorder from "@/components/chat/AudioRecorder";
 import AudioPlayer from "@/components/chat/AudioPlayer";
 import TypingIndicator from "@/components/chat/TypingIndicator";
@@ -284,7 +285,7 @@ const ChatRooms = () => {
   };
 
   return (
-    <div className="min-h-screen wood-grain">
+    <div className="min-h-screen wood-grain pb-20 md:pb-0">
       <Navbar />
       <main className="container mx-auto px-4 py-8">
         <div className="flex justify-between items-center mb-6">
@@ -519,6 +520,7 @@ const ChatRooms = () => {
           </Card>
         </div>
       </main>
+      <MobileNavigation />
     </div>
   );
 };

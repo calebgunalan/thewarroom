@@ -5,6 +5,7 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import Navbar from "@/components/layout/Navbar";
+import MobileNavigation from "@/components/layout/MobileNavigation";
 import ReputationCard from "@/components/dashboard/ReputationCard";
 import LeaderboardCard from "@/components/dashboard/LeaderboardCard";
 import UpcomingMeetings from "@/components/dashboard/UpcomingMeetings";
@@ -81,7 +82,8 @@ const Dashboard = () => {
   const pendingTasks = tasks.filter(t => t.status === "pending");
 
   return (
-    <div className="min-h-screen wood-grain">
+    <div className="min-h-screen wood-grain pb-20 md:pb-0">
+      <Navbar />
       <Navbar />
       <main className="container mx-auto px-4 py-8">
         <div className="flex justify-between items-center mb-8">
@@ -270,6 +272,7 @@ const Dashboard = () => {
           </Card>
         </div>
       </main>
+      <MobileNavigation />
     </div>
   );
 };

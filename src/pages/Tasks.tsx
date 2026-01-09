@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Navbar from "@/components/layout/Navbar";
+import MobileNavigation from "@/components/layout/MobileNavigation";
 import { toast } from "sonner";
 import { Plus, CheckCircle, Clock, AlertTriangle, Target } from "lucide-react";
 import { format } from "date-fns";
@@ -200,7 +201,7 @@ const Tasks = () => {
   };
 
   return (
-    <div className="min-h-screen wood-grain">
+    <div className="min-h-screen wood-grain pb-20 md:pb-0">
       <Navbar />
       <main className="container mx-auto px-4 py-8">
         <div className="flex justify-between items-center mb-8">
@@ -375,6 +376,7 @@ const Tasks = () => {
           </TabsContent>
         </Tabs>
       </main>
+      <MobileNavigation />
     </div>
   );
 };
