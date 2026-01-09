@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
 import Navbar from "@/components/layout/Navbar";
+import MobileNavigation from "@/components/layout/MobileNavigation";
 import { Trophy, Target, CheckCircle, AlertTriangle, TrendingUp } from "lucide-react";
 
 interface MemberStats {
@@ -153,7 +154,7 @@ const Members = () => {
   }
 
   return (
-    <div className="min-h-screen wood-grain">
+    <div className="min-h-screen wood-grain pb-20 md:pb-0">
       <Navbar />
       <main className="container mx-auto px-4 py-8">
         <div className="flex items-center justify-between mb-8">
@@ -297,6 +298,7 @@ const Members = () => {
           )}
         </div>
       </main>
+      <MobileNavigation />
     </div>
   );
 };

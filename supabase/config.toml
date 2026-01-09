@@ -1,1 +1,7 @@
 project_id = "pkrwpwomblbktqnqfjkw"
+
+[functions.send-email-notification]
+verify_jwt = false
+
+[functions.check-reminders]
+verify_jwt = false
