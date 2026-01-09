@@ -6,15 +6,27 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import Navbar from "@/components/layout/Navbar";
 import { User } from "@supabase/supabase-js";
-import { Shield, Target, Users, TrendingUp, Award, CheckCircle } from "lucide-react";
+import { Shield, Target, Users, TrendingUp, Award, CheckCircle, Calendar, MessageSquare, Video } from "lucide-react";
 import logo from "@/assets/war-room-logo.png";
 import heroBackground from "@/assets/hero-background.jpg";
 
+interface ForumConfig {
+  forum_name: string | null;
+  common_goal: string | null;
+  rules: string[] | null;
+}
+
 const Index = () => {
   const [user, setUser] = useState<User | null>(null);
+  const [forumConfig, setForumConfig] = useState<ForumConfig | null>(null);
+  const [memberCount, setMemberCount] = useState(0);
+  const [threadCount, setThreadCount] = useState(0);
+  const [taskCount, setTaskCount] = useState(0);
   const navigate = useNavigate();
 
   useEffect(() => {
+    fetchStats();
+    
     supabase.auth.getUser().then(({ data: { user } }) => {
       setUser(user);
       if (user) {
@@ -32,36 +44,67 @@ const Index = () => {
     return () => subscription.unsubscribe();
   }, [navigate]);
 
+  const fetchStats = async () => {
+    // Fetch forum config
+    const { data: configData } = await supabase
+      .from("forum_config")
+      .select("*")
+      .single();
+    
+    if (configData) setForumConfig(configData);
+
+    // Fetch counts
+    const [membersRes, threadsRes, tasksRes] = await Promise.all([
+      supabase.from("profiles").select("*", { count: "exact", head: true }).neq("status", "removed"),
+      supabase.from("threads").select("*", { count: "exact", head: true }),
+      supabase.from("tasks").select("*", { count: "exact", head: true }).eq("status", "completed"),
+    ]);
+
+    setMemberCount(membersRes.count || 0);
+    setThreadCount(threadsRes.count || 0);
+    setTaskCount(tasksRes.count || 0);
+  };
+
   const features = [
     {
       icon: Target,
       title: "Strategic Discussions",
-      description: "Engage in meaningful conversations about future initiatives, current progress, and past achievements"
+      description: "Engage in meaningful conversations about future initiatives and progress"
     },
     {
       icon: Users,
       title: "Collaborative Network",
-      description: "Connect with like-minded individuals who share your drive for excellence and accountability"
+      description: "Connect with like-minded individuals who share your drive for excellence"
     },
     {
       icon: TrendingUp,
       title: "Task Management",
-      description: "Track assigned missions, deadlines, and maintain accountability through structured follow-ups"
+      description: "Track missions, deadlines, and maintain accountability"
     },
     {
       icon: Award,
-      title: "Voting System",
-      description: "Democratic decision-making through community voting on ideas, proposals, and viewpoints"
+      title: "Voting & Reputation",
+      description: "Democratic decision-making with community voting and leaderboards"
     },
     {
       icon: Shield,
-      title: "Accountability",
-      description: "Three-strike system ensures commitment and active participation from all members"
+      title: "Accountability System",
+      description: "Three-strike system ensures commitment from all members"
     },
     {
-      icon: CheckCircle,
-      title: "Progress Tracking",
-      description: "Monitor individual and collective progress toward shared goals and milestones"
+      icon: Calendar,
+      title: "Calendar & Meetings",
+      description: "Schedule meetings and track all events in one place"
+    },
+    {
+      icon: MessageSquare,
+      title: "Real-time Chat",
+      description: "Instant messaging with voice notes and media sharing"
+    },
+    {
+      icon: Video,
+      title: "Video Conferencing",
+      description: "Launch live video meetings directly in the app"
     }
   ];
 
@@ -77,37 +120,82 @@ const Index = () => {
         />
         <div className="relative container mx-auto px-4 py-24 text-center">
           <img src={logo} alt="War Room" className="w-32 h-32 mx-auto mb-8 accent-glow" />
-          <h1 className="text-6xl font-bold mb-6">Welcome to the War Room</h1>
+          <h1 className="text-6xl font-bold mb-6">
+            {forumConfig?.forum_name || "Welcome to the War Room"}
+          </h1>
           <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-            An elite discussion forum where ambition meets accountability. 
-            Collaborate, strategize, and achieve collective excellence through structured engagement.
+            {forumConfig?.common_goal || 
+              "An elite discussion forum where ambition meets accountability. Collaborate, strategize, and achieve collective excellence."
+            }
           </p>
-          <div className="flex gap-4 justify-center">
+          <div className="flex gap-4 justify-center flex-wrap">
             <Button size="lg" onClick={() => navigate("/auth")} className="accent-glow">
               Join the Council
             </Button>
             <Button size="lg" variant="outline" onClick={() => navigate("/auth")}>
-              Return to Base
+              Sign In
             </Button>
+          </div>
+        </div>
+      </section>
+
+      {/* Stats Banner */}
+      <section className="bg-primary/10 border-y border-border/50">
+        <div className="container mx-auto px-4 py-8">
+          <div className="grid grid-cols-3 gap-8 text-center">
+            <div>
+              <div className="text-4xl font-bold text-accent">{memberCount}</div>
+              <p className="text-muted-foreground">Active Members</p>
+            </div>
+            <div>
+              <div className="text-4xl font-bold text-accent">{threadCount}</div>
+              <p className="text-muted-foreground">Discussions</p>
+            </div>
+            <div>
+              <div className="text-4xl font-bold text-accent">{taskCount}</div>
+              <p className="text-muted-foreground">Tasks Completed</p>
+            </div>
           </div>
         </div>
       </section>
 
       {/* Features Grid */}
       <section className="container mx-auto px-4 py-16">
-        <h2 className="text-4xl font-bold text-center mb-12">Core Capabilities</h2>
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <h2 className="text-4xl font-bold text-center mb-4">Core Capabilities</h2>
+        <p className="text-center text-muted-foreground mb-12 max-w-2xl mx-auto">
+          Everything you need to collaborate effectively, stay accountable, and achieve your goals together.
+        </p>
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
           {features.map((feature, idx) => (
-            <Card key={idx} className="elegant-shadow hover:shadow-lg transition-smooth">
+            <Card key={idx} className="elegant-shadow hover:shadow-lg transition-smooth hover:scale-105">
               <CardContent className="pt-6">
-                <feature.icon className="h-12 w-12 mb-4 text-accent" />
-                <h3 className="text-xl font-bold mb-2">{feature.title}</h3>
-                <p className="text-muted-foreground">{feature.description}</p>
+                <feature.icon className="h-10 w-10 mb-4 text-accent" />
+                <h3 className="text-lg font-bold mb-2">{feature.title}</h3>
+                <p className="text-sm text-muted-foreground">{feature.description}</p>
               </CardContent>
             </Card>
           ))}
         </div>
       </section>
+
+      {/* Rules Section */}
+      {forumConfig?.rules && forumConfig.rules.length > 0 && (
+        <section className="container mx-auto px-4 py-16">
+          <Card className="elegant-shadow">
+            <CardContent className="p-8">
+              <h2 className="text-3xl font-bold mb-6 text-center">Community Guidelines</h2>
+              <div className="grid md:grid-cols-2 gap-4 max-w-4xl mx-auto">
+                {forumConfig.rules.map((rule, idx) => (
+                  <div key={idx} className="flex items-start gap-3 p-3 rounded-lg bg-secondary/30">
+                    <CheckCircle className="h-5 w-5 text-accent mt-0.5 shrink-0" />
+                    <span>{rule}</span>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </section>
+      )}
 
       {/* Mission Statement */}
       <section className="container mx-auto px-4 py-16">
@@ -138,6 +226,13 @@ const Index = () => {
           Enter War Room
         </Button>
       </section>
+
+      {/* Footer */}
+      <footer className="border-t border-border/50 py-8">
+        <div className="container mx-auto px-4 text-center text-muted-foreground">
+          <p>© {new Date().getFullYear()} War Room. Built for accountability and excellence.</p>
+        </div>
+      </footer>
     </div>
   );
 };
