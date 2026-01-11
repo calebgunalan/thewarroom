@@ -63,6 +63,53 @@ All colors MUST be HSL.
     --sidebar-ring: 35 60% 45%;
   }
 
+  /* Light theme - Warm parchment/leather study aesthetic */
+  .light {
+    --background: 35 30% 92%;
+    --foreground: 20 25% 18%;
+
+    --card: 35 35% 96%;
+    --card-foreground: 20 25% 18%;
+
+    --popover: 35 30% 95%;
+    --popover-foreground: 20 25% 18%;
+
+    --primary: 25 50% 35%;
+    --primary-foreground: 35 30% 96%;
+
+    --secondary: 30 25% 85%;
+    --secondary-foreground: 20 25% 20%;
+
+    --muted: 30 20% 88%;
+    --muted-foreground: 20 15% 45%;
+
+    --accent: 30 55% 42%;
+    --accent-foreground: 35 30% 96%;
+
+    --destructive: 0 65% 50%;
+    --destructive-foreground: 35 30% 96%;
+
+    --border: 30 20% 82%;
+    --input: 35 25% 90%;
+    --ring: 30 55% 42%;
+
+    --sidebar-background: 35 30% 94%;
+    --sidebar-foreground: 20 25% 25%;
+    --sidebar-primary: 25 50% 35%;
+    --sidebar-primary-foreground: 35 30% 96%;
+    --sidebar-accent: 30 20% 88%;
+    --sidebar-accent-foreground: 20 25% 20%;
+    --sidebar-border: 30 20% 85%;
+    --sidebar-ring: 30 55% 42%;
+
+    --gradient-primary: linear-gradient(135deg, hsl(25 50% 35%) 0%, hsl(25 40% 28%) 100%);
+    --gradient-accent: linear-gradient(135deg, hsl(30 55% 42%) 0%, hsl(30 50% 35%) 100%);
+    --gradient-wood: linear-gradient(180deg, hsl(35 35% 96%) 0%, hsl(35 30% 92%) 100%);
+    --shadow-elegant: 0 10px 40px -10px hsl(20 30% 50% / 0.15);
+    --shadow-glow: 0 0 30px hsl(30 55% 42% / 0.15);
+    --shadow-wood: inset 0 1px 0 hsl(35 30% 100% / 0.5);
+  }
+
   .dark {
     /* Same as root for dark theme by default */
     --background: 20 15% 8%;

@@ -14,6 +14,7 @@ import logo from "@/assets/war-room-logo.png";
 import { User } from "@supabase/supabase-js";
 import { useEffect, useState } from "react";
 import NotificationBell from "./NotificationBell";
+import ThemeToggle from "@/components/theme/ThemeToggle";
 import { Search, Video, Shield, Calendar } from "lucide-react";
 
 const Navbar = () => {
@@ -102,6 +103,7 @@ const Navbar = () => {
                     <Search className="h-4 w-4" />
                   </Button>
                 </Link>
+                <ThemeToggle />
                 <NotificationBell />
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
