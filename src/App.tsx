@@ -20,6 +20,7 @@ import Search from "./pages/Search";
 import VideoMeeting from "./pages/VideoMeeting";
 import Admin from "./pages/Admin";
 import Calendar from "./pages/Calendar";
+import Analytics from "./pages/Analytics";
 
 const queryClient = new QueryClient();
 
@@ -48,6 +49,7 @@ const App = () => (
           <Route path="/meeting/:roomId" element={<VideoMeeting />} />
           <Route path="/admin" element={<Admin />} />
           <Route path="/calendar" element={<Calendar />} />
+          <Route path="/analytics" element={<Analytics />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

@@ -19,6 +19,7 @@ export type Database = {
           audio_url: string | null
           content: string
           created_at: string | null
+          document_url: string | null
           id: string
           image_url: string | null
           room_id: string
@@ -28,6 +29,7 @@ export type Database = {
           audio_url?: string | null
           content: string
           created_at?: string | null
+          document_url?: string | null
           id?: string
           image_url?: string | null
           room_id: string
@@ -37,6 +39,7 @@ export type Database = {
           audio_url?: string | null
           content?: string
           created_at?: string | null
+          document_url?: string | null
           id?: string
           image_url?: string | null
           room_id?: string
@@ -203,6 +206,7 @@ export type Database = {
           audio_url: string | null
           content: string
           created_at: string | null
+          document_url: string | null
           id: string
           image_url: string | null
           read: boolean | null
@@ -214,6 +218,7 @@ export type Database = {
           audio_url?: string | null
           content: string
           created_at?: string | null
+          document_url?: string | null
           id?: string
           image_url?: string | null
           read?: boolean | null
@@ -225,6 +230,7 @@ export type Database = {
           audio_url?: string | null
           content?: string
           created_at?: string | null
+          document_url?: string | null
           id?: string
           image_url?: string | null
           read?: boolean | null
@@ -287,6 +293,7 @@ export type Database = {
           author_id: string
           content: string
           created_at: string | null
+          document_url: string | null
           id: string
           image_url: string | null
           thread_id: string
@@ -296,6 +303,7 @@ export type Database = {
           author_id: string
           content: string
           created_at?: string | null
+          document_url?: string | null
           id?: string
           image_url?: string | null
           thread_id: string
@@ -305,6 +313,7 @@ export type Database = {
           author_id?: string
           content?: string
           created_at?: string | null
+          document_url?: string | null
           id?: string
           image_url?: string | null
           thread_id?: string

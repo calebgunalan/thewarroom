@@ -15,7 +15,7 @@ import { User } from "@supabase/supabase-js";
 import { useEffect, useState } from "react";
 import NotificationBell from "./NotificationBell";
 import ThemeToggle from "@/components/theme/ThemeToggle";
-import { Search, Video, Shield, Calendar } from "lucide-react";
+import { Search, Video, Shield, Calendar, TrendingUp } from "lucide-react";
 
 const Navbar = () => {
   const navigate = useNavigate();
@@ -91,6 +91,11 @@ const Navbar = () => {
                 <Link to="/calendar">
                   <Button variant="ghost" size="icon" title="Calendar">
                     <Calendar className="h-4 w-4" />
+                  </Button>
+                </Link>
+                <Link to="/analytics">
+                  <Button variant="ghost" size="icon" title="Analytics">
+                    <TrendingUp className="h-4 w-4" />
                   </Button>
                 </Link>
                 <Link to="/meeting">
