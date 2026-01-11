@@ -2,21 +2,26 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "sonner";
-import { ArrowLeft, ArrowUp, ArrowDown, MessageSquare, Upload, X } from "lucide-react";
+import { ArrowLeft, ArrowUp, ArrowDown, MessageSquare, Upload, X, FileText } from "lucide-react";
 import Navbar from "@/components/layout/Navbar";
 import ReportButton from "@/components/content/ReportButton";
+import MentionInput from "@/components/mentions/MentionInput";
+import MentionText from "@/components/mentions/MentionText";
+import DocumentUpload from "@/components/files/DocumentUpload";
+import DocumentAttachment from "@/components/files/DocumentAttachment";
+import { notifyMentionedUsers } from "@/lib/mentions";
 import { format } from "date-fns";
 
 interface Post {
   id: string;
   content: string;
   image_url: string | null;
+  document_url: string | null;
   created_at: string;
   author_id: string;
   profiles: {
@@ -52,6 +57,8 @@ const ThreadDetail = () => {
   const [newPost, setNewPost] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [pendingDocumentUrl, setPendingDocumentUrl] = useState<string | null>(null);
+  const [pendingDocumentName, setPendingDocumentName] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
@@ -202,13 +209,26 @@ const ThreadDetail = () => {
         author_id: userId,
         content: newPost.trim(),
         image_url: imageUrl,
+        document_url: pendingDocumentUrl,
       });
 
       if (error) throw error;
 
+      // Notify mentioned users
+      if (newPost.includes("@") && threadId) {
+        await notifyMentionedUsers(
+          newPost,
+          userId,
+          "post",
+          `/threads/${threadId}`
+        );
+      }
+
       setNewPost("");
       setImageFile(null);
       setImagePreview(null);
+      setPendingDocumentUrl(null);
+      setPendingDocumentName(null);
       toast.success("Post added successfully");
     } catch (error: any) {
       toast.error(error.message || "Failed to add post");
@@ -356,13 +376,16 @@ const ThreadDetail = () => {
                           </p>
                         </div>
                       </div>
-                      {post.content && <p className="text-foreground mb-3 whitespace-pre-wrap">{post.content}</p>}
+                      {post.content && <MentionText content={post.content} className="text-foreground mb-3" />}
                       {post.image_url && (
                         <img 
                           src={post.image_url} 
                           alt="Post attachment" 
                           className="rounded-lg max-w-full h-auto mb-3"
                         />
+                      )}
+                      {post.document_url && (
+                        <DocumentAttachment url={post.document_url} className="mb-3" />
                       )}
                       <div className="flex justify-end">
                         <ReportButton contentType="post" contentId={post.id} />
@@ -383,10 +406,10 @@ const ThreadDetail = () => {
             </h2>
           </CardHeader>
           <CardContent className="space-y-4">
-            <Textarea
+            <MentionInput
               value={newPost}
-              onChange={(e) => setNewPost(e.target.value)}
-              placeholder="Share your thoughts..."
+              onChange={setNewPost}
+              placeholder="Share your thoughts... Use @username to mention someone"
               rows={4}
             />
             {imagePreview && (
@@ -405,7 +428,23 @@ const ThreadDetail = () => {
                 </Button>
               </div>
             )}
-            <div className="flex gap-2">
+            {pendingDocumentUrl && (
+              <div className="flex items-center gap-2 p-2 bg-muted rounded-lg">
+                <FileText className="h-5 w-5 text-accent" />
+                <span className="text-sm truncate flex-1">{pendingDocumentName}</span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setPendingDocumentUrl(null);
+                    setPendingDocumentName(null);
+                  }}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
+            <div className="flex flex-wrap gap-2">
               <Input
                 type="file"
                 accept="image/*"
@@ -420,6 +459,15 @@ const ThreadDetail = () => {
                 <Upload className="mr-2 h-4 w-4" />
                 Add Image
               </Button>
+              {userId && !pendingDocumentUrl && (
+                <DocumentUpload
+                  userId={userId}
+                  onUploadComplete={(url, name) => {
+                    setPendingDocumentUrl(url);
+                    setPendingDocumentName(name);
+                  }}
+                />
+              )}
               <Button onClick={handleSubmitPost} disabled={submitting}>
                 {submitting ? "Posting..." : "Post Reply"}
               </Button>
