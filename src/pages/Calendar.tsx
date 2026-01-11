@@ -7,9 +7,11 @@ import { supabase } from "@/integrations/supabase/client";
 import Navbar from "@/components/layout/Navbar";
 import MobileNavigation from "@/components/layout/MobileNavigation";
 import { format, isSameDay, parseISO, startOfMonth, endOfMonth } from "date-fns";
-import { CheckSquare, Video, AlertCircle, ChevronLeft, ChevronRight } from "lucide-react";
+import { CheckSquare, Video, AlertCircle, ChevronLeft, ChevronRight, Download } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { downloadICSFile } from "@/lib/calendar-export";
+import { toast } from "sonner";
 
 interface Task {
   id: string;
@@ -102,6 +104,32 @@ const CalendarPage = () => {
     setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1));
   };
 
+  const handleExportCalendar = () => {
+    const events = [
+      ...tasks.map((task) => ({
+        title: `[Task] ${task.title}`,
+        description: task.description || undefined,
+        startDate: parseISO(task.deadline),
+      })),
+      ...meetings
+        .filter((m) => m.scheduled_at)
+        .map((meeting) => ({
+          title: `[Meeting] ${meeting.title}`,
+          description: `War Room Meeting - Room ID: ${meeting.room_id}`,
+          startDate: parseISO(meeting.scheduled_at!),
+          location: `https://meet.jit.si/${meeting.room_id}`,
+        })),
+    ];
+
+    if (events.length === 0) {
+      toast.error("No events to export for this month");
+      return;
+    }
+
+    downloadICSFile(events, `war-room-${format(currentMonth, "yyyy-MM")}.ics`);
+    toast.success(`Exported ${events.length} events to calendar`);
+  };
+
   return (
     <div className="min-h-screen bg-background pb-20 md:pb-0">
       <Navbar />
@@ -109,6 +137,15 @@ const CalendarPage = () => {
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-3xl font-bold">Calendar</h1>
           <div className="flex items-center gap-2">
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={handleExportCalendar}
+              className="hidden sm:flex"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Export Month
+            </Button>
             <Button variant="outline" size="icon" onClick={handlePreviousMonth}>
               <ChevronLeft className="h-4 w-4" />
             </Button>

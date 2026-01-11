@@ -8,8 +8,10 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import Navbar from "@/components/layout/Navbar";
-import { Video, Plus, Users, Calendar, ArrowLeft, ExternalLink } from "lucide-react";
+import MeetingAgenda from "@/components/meeting/MeetingAgenda";
+import { Video, Plus, Users, Calendar, ArrowLeft, ExternalLink, Download } from "lucide-react";
 import { format } from "date-fns";
+import { exportSingleEvent } from "@/lib/calendar-export";
 
 interface Meeting {
   id: string;
@@ -106,6 +108,22 @@ const VideoMeeting = () => {
     }
   };
 
+  const handleExportMeeting = (meeting: Meeting) => {
+    if (!meeting.scheduled_at) {
+      toast.error("This meeting doesn't have a scheduled time");
+      return;
+    }
+    
+    exportSingleEvent({
+      title: meeting.title,
+      description: `War Room Meeting - Room ID: ${meeting.room_id}`,
+      startDate: new Date(meeting.scheduled_at),
+      location: `https://meet.jit.si/${meeting.room_id}`,
+    });
+    
+    toast.success("Meeting exported to calendar");
+  };
+
   if (roomId && activeMeeting) {
     return (
       <div className="min-h-screen wood-grain">
@@ -116,40 +134,67 @@ const VideoMeeting = () => {
             Back to Meetings
           </Button>
           
-          <Card className="elegant-shadow border-border/50">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-3">
-                <Video className="h-6 w-6 text-primary" />
-                {activeMeeting.title}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="aspect-video bg-muted rounded-lg flex items-center justify-center">
-                <div className="text-center space-y-4">
-                  <Video className="h-16 w-16 mx-auto text-muted-foreground" />
-                  <p className="text-muted-foreground">
-                    Click below to join the video meeting
-                  </p>
-                  <Button onClick={openJitsiMeeting} size="lg" className="accent-glow">
-                    <ExternalLink className="mr-2 h-4 w-4" />
-                    Join Video Call
-                  </Button>
-                </div>
-              </div>
-              
-              <div className="p-4 bg-muted rounded-lg">
-                <p className="text-sm text-muted-foreground">
-                  <strong>Room ID:</strong> {activeMeeting.room_id}
-                </p>
-                <p className="text-sm text-muted-foreground mt-2">
-                  Share this link with others to invite them:{" "}
-                  <code className="bg-background px-2 py-1 rounded text-xs">
-                    {window.location.href}
-                  </code>
-                </p>
-              </div>
-            </CardContent>
-          </Card>
+          <div className="grid lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2">
+              <Card className="elegant-shadow border-border/50">
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="flex items-center gap-3">
+                      <Video className="h-6 w-6 text-primary" />
+                      {activeMeeting.title}
+                    </CardTitle>
+                    {activeMeeting.scheduled_at && (
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => handleExportMeeting(activeMeeting)}
+                      >
+                        <Download className="h-4 w-4 mr-2" />
+                        Export
+                      </Button>
+                    )}
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="aspect-video bg-muted rounded-lg flex items-center justify-center">
+                    <div className="text-center space-y-4">
+                      <Video className="h-16 w-16 mx-auto text-muted-foreground" />
+                      <p className="text-muted-foreground">
+                        Click below to join the video meeting
+                      </p>
+                      <Button onClick={openJitsiMeeting} size="lg" className="accent-glow">
+                        <ExternalLink className="mr-2 h-4 w-4" />
+                        Join Video Call
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  <div className="p-4 bg-muted rounded-lg">
+                    <p className="text-sm text-muted-foreground">
+                      <strong>Room ID:</strong> {activeMeeting.room_id}
+                    </p>
+                    <p className="text-sm text-muted-foreground mt-2">
+                      Share this link with others to invite them:{" "}
+                      <code className="bg-background px-2 py-1 rounded text-xs">
+                        {window.location.href}
+                      </code>
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+            
+            {/* Meeting Agenda Sidebar */}
+            <div>
+              {userId && (
+                <MeetingAgenda 
+                  meetingId={activeMeeting.id} 
+                  userId={userId} 
+                  isOrganizer={activeMeeting.created_by === userId}
+                />
+              )}
+            </div>
+          </div>
         </main>
       </div>
     );
