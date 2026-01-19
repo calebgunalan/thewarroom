@@ -9,8 +9,10 @@ import MobileNavigation from "@/components/layout/MobileNavigation";
 import ReputationCard from "@/components/dashboard/ReputationCard";
 import LeaderboardCard from "@/components/dashboard/LeaderboardCard";
 import UpcomingMeetings from "@/components/dashboard/UpcomingMeetings";
+import EmailVerificationBanner from "@/components/auth/EmailVerificationBanner";
+import BadgeDisplay from "@/components/badges/BadgeDisplay";
 import { User } from "@supabase/supabase-js";
-import { Target, TrendingUp, AlertTriangle, CheckCircle, MessageSquare, Users } from "lucide-react";
+import { Target, TrendingUp, AlertTriangle, CheckCircle, MessageSquare, Users, Award } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const Dashboard = () => {
@@ -75,6 +77,11 @@ const Dashboard = () => {
     setThreads(threadsData || []);
     setRecentMessages(messagesCount || 0);
     setMemberCount(members || 0);
+
+    // Check for new badges
+    if (user) {
+      supabase.functions.invoke("check-badges", { body: { userId: user.id } });
+    }
   };
 
   const completedTasks = tasks.filter(t => t.status === "completed").length;
@@ -84,8 +91,9 @@ const Dashboard = () => {
   return (
     <div className="min-h-screen wood-grain pb-20 md:pb-0">
       <Navbar />
-      <Navbar />
       <main className="container mx-auto px-4 py-8">
+        <EmailVerificationBanner />
+        
         <div className="flex justify-between items-center mb-8">
           <div>
             <h1 className="text-4xl font-bold">Command Center</h1>
@@ -176,6 +184,24 @@ const Dashboard = () => {
           {/* Right Column - Leaderboard */}
           <LeaderboardCard />
         </div>
+
+        {/* Badges Section */}
+        {user && (
+          <Card className="elegant-shadow mb-8">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle className="flex items-center gap-2">
+                <Award className="h-5 w-5 text-accent" />
+                Your Achievements
+              </CardTitle>
+              <Button variant="ghost" size="sm" onClick={() => navigate("/profile")}>
+                View All
+              </Button>
+            </CardHeader>
+            <CardContent>
+              <BadgeDisplay userId={user.id} compact />
+            </CardContent>
+          </Card>
+        )}
 
         {/* Bottom Section */}
         <div className="grid gap-6 md:grid-cols-2">
