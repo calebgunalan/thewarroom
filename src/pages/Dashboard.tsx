@@ -11,8 +11,9 @@ import LeaderboardCard from "@/components/dashboard/LeaderboardCard";
 import UpcomingMeetings from "@/components/dashboard/UpcomingMeetings";
 import EmailVerificationBanner from "@/components/auth/EmailVerificationBanner";
 import BadgeDisplay from "@/components/badges/BadgeDisplay";
+import ActivityFeed from "@/components/activity/ActivityFeed";
 import { User } from "@supabase/supabase-js";
-import { Target, TrendingUp, AlertTriangle, CheckCircle, MessageSquare, Users, Award } from "lucide-react";
+import { Target, TrendingUp, AlertTriangle, CheckCircle, MessageSquare, Users, Award, Zap } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const Dashboard = () => {
@@ -174,7 +175,7 @@ const Dashboard = () => {
         </div>
 
         {/* Main Content Grid */}
-        <div className="grid gap-6 lg:grid-cols-3 mb-8">
+        <div className="grid gap-6 lg:grid-cols-4 mb-8">
           {/* Left Column - Reputation */}
           {user && <ReputationCard userId={user.id} />}
 
@@ -183,6 +184,9 @@ const Dashboard = () => {
 
           {/* Right Column - Leaderboard */}
           <LeaderboardCard />
+
+          {/* Activity Feed */}
+          <ActivityFeed limit={10} />
         </div>
 
         {/* Badges Section */}
