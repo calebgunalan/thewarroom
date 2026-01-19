@@ -5,11 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import Navbar from "@/components/layout/Navbar";
 import MeetingAgenda from "@/components/meeting/MeetingAgenda";
-import { Video, Plus, Users, Calendar, ArrowLeft, ExternalLink, Download } from "lucide-react";
+import RecurringMeetingForm, { RecurrenceSettings } from "@/components/meeting/RecurringMeetingForm";
+import { Video, Plus, Users, Calendar, ArrowLeft, ExternalLink, Download, Repeat } from "lucide-react";
 import { format } from "date-fns";
 import { exportSingleEvent } from "@/lib/calendar-export";
 
@@ -21,6 +23,10 @@ interface Meeting {
   created_by: string;
   is_active: boolean;
   created_at: string;
+  recurrence_type?: string | null;
+  recurrence_interval?: number | null;
+  recurrence_end_date?: string | null;
+  parent_meeting_id?: string | null;
 }
 
 const VideoMeeting = () => {
@@ -31,6 +37,12 @@ const VideoMeeting = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [newMeeting, setNewMeeting] = useState({ title: "", scheduledAt: "" });
   const [activeMeeting, setActiveMeeting] = useState<Meeting | null>(null);
+  const [recurrence, setRecurrence] = useState<RecurrenceSettings>({
+    enabled: false,
+    type: "weekly",
+    interval: 1,
+    endDate: null,
+  });
 
   useEffect(() => {
     const init = async () => {
@@ -38,6 +50,8 @@ const VideoMeeting = () => {
       if (user) {
         setUserId(user.id);
         fetchMeetings();
+        // Trigger recurring meeting generation
+        supabase.functions.invoke("generate-recurring-meetings");
       }
     };
     init();
@@ -53,9 +67,9 @@ const VideoMeeting = () => {
     const { data } = await supabase
       .from("meetings")
       .select("*")
-      .order("created_at", { ascending: false });
+      .order("scheduled_at", { ascending: true, nullsFirst: false });
     
-    setMeetings(data || []);
+    setMeetings((data as Meeting[]) || []);
   };
 
   const fetchMeetingByRoomId = async (id: string) => {
@@ -66,7 +80,7 @@ const VideoMeeting = () => {
       .single();
     
     if (data) {
-      setActiveMeeting(data);
+      setActiveMeeting(data as Meeting);
     }
   };
 
@@ -79,20 +93,35 @@ const VideoMeeting = () => {
     const roomIdGenerated = `warroom-${Date.now()}-${Math.random().toString(36).substring(7)}`;
 
     try {
-      const { error } = await supabase.from("meetings").insert({
+      const meetingData: any = {
         title: newMeeting.title,
         room_id: roomIdGenerated,
         scheduled_at: newMeeting.scheduledAt || null,
         created_by: userId,
         is_active: false,
-      });
+      };
+
+      if (recurrence.enabled && newMeeting.scheduledAt) {
+        meetingData.recurrence_type = recurrence.type;
+        meetingData.recurrence_interval = recurrence.interval;
+        meetingData.recurrence_end_date = recurrence.endDate?.toISOString() || null;
+      }
+
+      const { error } = await supabase.from("meetings").insert(meetingData);
 
       if (error) throw error;
 
-      toast.success("Meeting created successfully");
+      toast.success(recurrence.enabled ? "Recurring meeting created!" : "Meeting created successfully");
       setNewMeeting({ title: "", scheduledAt: "" });
+      setRecurrence({ enabled: false, type: "weekly", interval: 1, endDate: null });
       setIsDialogOpen(false);
       fetchMeetings();
+
+      // Trigger recurring meeting generation if recurring
+      if (recurrence.enabled) {
+        await supabase.functions.invoke("generate-recurring-meetings");
+        fetchMeetings();
+      }
     } catch (error: any) {
       toast.error(error.message);
     }
@@ -142,6 +171,12 @@ const VideoMeeting = () => {
                     <CardTitle className="flex items-center gap-3">
                       <Video className="h-6 w-6 text-primary" />
                       {activeMeeting.title}
+                      {activeMeeting.recurrence_type && (
+                        <Badge variant="outline" className="ml-2">
+                          <Repeat className="h-3 w-3 mr-1" />
+                          {activeMeeting.recurrence_type}
+                        </Badge>
+                      )}
                     </CardTitle>
                     {activeMeeting.scheduled_at && (
                       <Button 
@@ -200,6 +235,12 @@ const VideoMeeting = () => {
     );
   }
 
+  // Group meetings by parent
+  const upcomingMeetings = meetings.filter(m => {
+    if (!m.scheduled_at) return true;
+    return new Date(m.scheduled_at) >= new Date();
+  });
+
   return (
     <div className="min-h-screen wood-grain">
       <Navbar />
@@ -216,7 +257,7 @@ const VideoMeeting = () => {
                 New Meeting
               </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="max-w-lg">
               <DialogHeader>
                 <DialogTitle>Create Meeting</DialogTitle>
               </DialogHeader>
@@ -231,7 +272,7 @@ const VideoMeeting = () => {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="scheduledAt">Schedule For (Optional)</Label>
+                  <Label htmlFor="scheduledAt">Schedule For</Label>
                   <Input
                     id="scheduledAt"
                     type="datetime-local"
@@ -239,19 +280,40 @@ const VideoMeeting = () => {
                     onChange={(e) => setNewMeeting({ ...newMeeting, scheduledAt: e.target.value })}
                   />
                 </div>
-                <Button onClick={createMeeting} className="w-full">Create Meeting</Button>
+                
+                {newMeeting.scheduledAt && (
+                  <RecurringMeetingForm
+                    settings={recurrence}
+                    onChange={setRecurrence}
+                  />
+                )}
+
+                <Button onClick={createMeeting} className="w-full">
+                  {recurrence.enabled ? "Create Recurring Meeting" : "Create Meeting"}
+                </Button>
               </div>
             </DialogContent>
           </Dialog>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {meetings.map((meeting) => (
+          {upcomingMeetings.map((meeting) => (
             <Card key={meeting.id} className="elegant-shadow border-border/50 hover:border-primary/50 transition-colors">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Video className="h-5 w-5 text-primary" />
-                  {meeting.title}
+                  <span className="flex-1 truncate">{meeting.title}</span>
+                  {meeting.recurrence_type && !meeting.parent_meeting_id && (
+                    <Badge variant="outline" className="shrink-0">
+                      <Repeat className="h-3 w-3 mr-1" />
+                      {meeting.recurrence_type}
+                    </Badge>
+                  )}
+                  {meeting.parent_meeting_id && (
+                    <Badge variant="secondary" className="shrink-0 text-xs">
+                      Series
+                    </Badge>
+                  )}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -265,13 +327,24 @@ const VideoMeeting = () => {
                   <Users className="h-4 w-4" />
                   Room: {meeting.room_id.substring(0, 20)}...
                 </div>
-                <Button onClick={() => joinMeeting(meeting)} className="w-full">
-                  Join Meeting
-                </Button>
+                <div className="flex gap-2">
+                  <Button onClick={() => joinMeeting(meeting)} className="flex-1">
+                    Join Meeting
+                  </Button>
+                  {meeting.scheduled_at && (
+                    <Button 
+                      variant="outline" 
+                      size="icon"
+                      onClick={() => handleExportMeeting(meeting)}
+                    >
+                      <Download className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
               </CardContent>
             </Card>
           ))}
-          {meetings.length === 0 && (
+          {upcomingMeetings.length === 0 && (
             <div className="col-span-full text-center py-12 text-muted-foreground">
               <Video className="h-12 w-12 mx-auto mb-4 opacity-50" />
               <p>No meetings yet. Create one to get started!</p>

@@ -5,3 +5,12 @@ verify_jwt = false
 
 [functions.check-reminders]
 verify_jwt = false
+
+[functions.send-verification-email]
+verify_jwt = false
+
+[functions.check-badges]
+verify_jwt = false
+
+[functions.generate-recurring-meetings]
+verify_jwt = false

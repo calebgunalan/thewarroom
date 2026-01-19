@@ -11,8 +11,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Label } from "@/components/ui/label";
 import Navbar from "@/components/layout/Navbar";
 import AvatarUpload from "@/components/profile/AvatarUpload";
+import BadgeDisplay from "@/components/badges/BadgeDisplay";
 import { toast } from "sonner";
-import { Edit, TrendingUp, Target, CheckCircle, MessageSquare, AlertTriangle, Plus, Mail } from "lucide-react";
+import { Edit, TrendingUp, Target, CheckCircle, MessageSquare, AlertTriangle, Plus, Mail, Award } from "lucide-react";
 import { format } from "date-fns";
 import { useNavigate } from "react-router-dom";
 
@@ -433,6 +434,15 @@ const ProfilePage = () => {
               </div>
             </CardContent>
           </Card>
+
+          {/* Badges Section */}
+          <div className="mt-8">
+            <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
+              <Award className="h-6 w-6 text-accent" />
+              Achievements
+            </h2>
+            <BadgeDisplay userId={profile.id} />
+          </div>
         </div>
       </main>
     </div>
